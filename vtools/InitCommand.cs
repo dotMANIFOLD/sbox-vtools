@@ -1,8 +1,8 @@
 ﻿using CliFx;
 using CliFx.Attributes;
 using CliFx.Infrastructure;
+using MANIFOLD.Utility;
 using Microsoft.Win32;
-using Newtonsoft.Json;
 
 namespace MANIFOLD {
     [Command("init", Description = "Creates a work folder and an settings file.")]
@@ -25,17 +25,17 @@ namespace MANIFOLD {
                 console.Output.WriteLine("Could not find S&box install");
                 return default;
             }
-            settings.sboxLocation = sboxLocation;
+            settings.SBoxLocation = sboxLocation;
             
             string blenderExecutable = BlenderExecutable ?? GetProgramByExtension(".blend");
             if (blenderExecutable == null) {
                 console.Output.WriteLine("Could not find blender install");
                 return default;
             }
-            settings.blenderExecutable = blenderExecutable;
-            settings.sboxProject = SboxProject;
+            settings.BlenderExecutable = blenderExecutable;
+            settings.SBoxProject = SboxProject;
             
-            string json = JsonConvert.SerializeObject(settings, Formatting.Indented);
+            string json = Json.Serialize(settings);
             File.WriteAllText(Path.Combine(workFolder, "settings.json"), json);
             console.Output.WriteLine("Settings file created");
             
