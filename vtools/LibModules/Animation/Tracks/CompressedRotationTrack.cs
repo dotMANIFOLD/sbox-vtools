@@ -5,11 +5,13 @@ using Sandbox;
 namespace MANIFOLD.Animation {
     public class CompressedRotationTrack : CompressedTrack<Rotation> {
         public const int ELEMENT_SIZE = 6;
-        public const float FLOAT_MIN_RANGE = -0.707107f;
-        public const float FLOAT_MAX_RANGE = 0.707107f;
-        public const byte SHORT_BIT_COUNT = 15;
-        public const ushort SHORT_MIN_RANGE = 0;
-        public const ushort SHORT_MAX_RANGE = 0b111_1111_1111_1111;
+        
+        public const float FLOAT_MIN = -0.707107f;
+        public const float FLOAT_MAX = 0.707107f;
+        
+        public const byte COMPONENT_BIT_COUNT = 15;
+        public const ushort COMPONENT_MIN = 0;
+        public const ushort COMPONENT_MAX = 0b111_1111_1111_1111;
         
         protected override ByteStream CompressInternal() {
             var stream = ByteStream.Create(Data.Length * ELEMENT_SIZE);
@@ -25,9 +27,9 @@ namespace MANIFOLD.Animation {
 
                 ulong temp = 0;
                 temp |= c;
-                temp |= (ulong)b << 15;
-                temp |= (ulong)a << 30;
-                temp |= (ulong)decomposed.index << 45;
+                temp |= (ulong)b << COMPONENT_BIT_COUNT;
+                temp |= (ulong)a << (COMPONENT_BIT_COUNT * 2);
+                temp |= (ulong)decomposed.index << (COMPONENT_BIT_COUNT * 3);
                 byte[] tempBytes = BitConverter.GetBytes(temp);
 
                 stream.Write(tempBytes, 0, ELEMENT_SIZE);
@@ -42,10 +44,10 @@ namespace MANIFOLD.Animation {
                 data.Read(buffer, 0, ELEMENT_SIZE);
                 
                 ulong temp = BitConverter.ToUInt64(buffer, 0);
-                uint index = (uint)(temp >> 45);
-                float a = ToFloat((ushort)((temp >> 30) & SHORT_MAX_RANGE));
-                float b = ToFloat((ushort)((temp >> 15) & SHORT_MAX_RANGE));
-                float c = ToFloat((ushort)(temp & SHORT_MAX_RANGE));
+                uint index = (uint)(temp >> (COMPONENT_BIT_COUNT * 3));
+                float a = ToFloat((ushort)((temp >> (COMPONENT_BIT_COUNT * 2)) & COMPONENT_MAX));
+                float b = ToFloat((ushort)((temp >> COMPONENT_BIT_COUNT) & COMPONENT_MAX));
+                float c = ToFloat((ushort)(temp & COMPONENT_MAX));
                 
                 float d = MathF.Sqrt(1 - a*a - b*b - c*c);
 
@@ -91,17 +93,17 @@ namespace MANIFOLD.Animation {
         }
 
         private ushort ToUShort(float value) {
-            int targetRange = SHORT_MAX_RANGE - SHORT_MIN_RANGE;
-            float valueRange = FLOAT_MAX_RANGE - FLOAT_MIN_RANGE;
-            float valueRelative = value - FLOAT_MIN_RANGE;
-            return (ushort)(SHORT_MIN_RANGE + (ushort)(valueRelative / valueRange * targetRange));
+            int targetRange = COMPONENT_MAX - COMPONENT_MIN;
+            float valueRange = FLOAT_MAX - FLOAT_MIN;
+            float valueRelative = value - FLOAT_MIN;
+            return (ushort)(COMPONENT_MIN + (ushort)(valueRelative / valueRange * targetRange));
         }
 
         private float ToFloat(ushort value) {
-            float targetRange = FLOAT_MAX_RANGE - FLOAT_MIN_RANGE;
-            ushort valueRange = SHORT_MAX_RANGE - SHORT_MIN_RANGE;
-            ushort valueRelative = (ushort)(value - SHORT_MIN_RANGE);
-            return FLOAT_MIN_RANGE + (valueRelative / (float)valueRange * targetRange);
+            float targetRange = FLOAT_MAX - FLOAT_MIN;
+            ushort valueRange = COMPONENT_MAX - COMPONENT_MIN;
+            ushort valueRelative = (ushort)(value - COMPONENT_MIN);
+            return FLOAT_MIN + (valueRelative / (float)valueRange * targetRange);
         }
     }
 }
