@@ -8,6 +8,7 @@ using SteamDatabase.ValvePak;
 using ValveResourceFormat;
 using ValveResourceFormat.IO;
 using ValveResourceFormat.ResourceTypes;
+using Vector3 = System.Numerics.Vector3;
 
 namespace MANIFOLD {
     [Command("light extract", Description = "Extracts all VPK data and makes it accessible to blender.")]

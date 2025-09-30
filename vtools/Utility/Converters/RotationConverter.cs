@@ -9,7 +9,7 @@ namespace MANIFOLD.Utility {
         }
 
         public override void Write(Utf8JsonWriter writer, Rotation value, JsonSerializerOptions options) {
-            writer.WriteStringValue(string.Join(',', value.X, value.Y, value.Z, value.W));
+            writer.WriteStringValue(string.Join(',', value.x, value.y, value.z, value.w));
         }
     }
 }
