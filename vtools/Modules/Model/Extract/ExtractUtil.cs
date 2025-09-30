@@ -6,8 +6,8 @@ using ValveResourceFormat.Serialization.KeyValues;
 namespace MANIFOLD.VTools.Model {
     public class ExtractUtil {
         private class TrackPair {
-            public Vector3Track posTrack;
-            public RotationTrack rotTrack;
+            public CompressedVector3Track posTrack;
+            public CompressedRotationTrack rotTrack;
         }
         
         public static AnimationClip CreateClip(ValveResourceFormat.ResourceTypes.Model model, ValveResourceFormat.ResourceTypes.ModelAnimation.Animation anim) {
@@ -18,6 +18,7 @@ namespace MANIFOLD.VTools.Model {
                 Generated = true,
             };
             AddBoneTracks(anim, clip, model);
+            clip.Compress();
             return clip;
         }
         
@@ -29,13 +30,15 @@ namespace MANIFOLD.VTools.Model {
                 var pair = new TrackPair();
                 pairs[i] = pair;
                     
-                pair.posTrack = new Vector3Track() {
+                pair.posTrack = new CompressedVector3Track() {
                     Name = "LocalPosition",
-                    TargetBone = bone.Name
+                    TargetBone = bone.Name,
+                    Data = new Vector3[anim.FrameCount],
                 };
-                pair.rotTrack = new RotationTrack() {
+                pair.rotTrack = new CompressedRotationTrack() {
                     Name = "LocalRotation",
-                    TargetBone = bone.Name
+                    TargetBone = bone.Name,
+                    Data = new Rotation[anim.FrameCount],
                 };
                 clip.Tracks.Add(pair.posTrack);
                 clip.Tracks.Add(pair.rotTrack);
@@ -49,8 +52,8 @@ namespace MANIFOLD.VTools.Model {
                     
                 for (int boneIndex = 0; boneIndex < frame.Bones.Length; boneIndex++) {
                     var transform = frame.Bones[boneIndex];
-                    pairs[boneIndex].posTrack.KeyFrames.Add(i, transform.Position);
-                    pairs[boneIndex].rotTrack.KeyFrames.Add(i, transform.Angle);
+                    pairs[boneIndex].posTrack.Data[i] = transform.Position;
+                    pairs[boneIndex].rotTrack.Data[i] = transform.Angle;
                 }
             }
         }
