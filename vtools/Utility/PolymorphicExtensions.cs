@@ -6,16 +6,29 @@ using System.Text.Json.Nodes;
 namespace MANIFOLD.Utility {
     public static class PolymorphicExtensions {
         public const string TYPE_FIELD = "__type";
+        public const string TYPE_ELEMENT_FIELD = "__elements";
         public const string NULL_KEY = "__null";
 
         public static JsonNode ToPolymorphic<T>(this T obj) {
             JsonNode node = Json.ToNode(obj);
-            node[TYPE_FIELD] = Json.ToNode(obj.GetType(), typeof(Type));
+            var type = obj.GetType();
+            if (type.IsConstructedGenericType) {
+                node[TYPE_FIELD] = Json.ToNode(type.GetGenericTypeDefinition(), typeof(Type));
+                node[TYPE_ELEMENT_FIELD] = Json.ToNode(type.GenericTypeArguments);
+            } else {
+                node[TYPE_FIELD] = Json.ToNode(type, typeof(Type));
+            }
+            
             return node;
         }
 
         public static T FromPolymorphic<T>(this JsonNode node) {
             var type = Json.FromNode<Type>(node[TYPE_FIELD]);
+            if (type.IsGenericTypeDefinition) {
+                var elements = Json.FromNode<Type[]>(node[TYPE_ELEMENT_FIELD]);
+                type = type.MakeGenericType(elements);
+            }
+            
             return (T)Json.FromNode(node, type);
         }
         

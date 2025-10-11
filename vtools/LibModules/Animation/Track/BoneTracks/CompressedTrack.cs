@@ -3,19 +3,21 @@ using System.Text.Json.Serialization;
 using Sandbox;
 
 namespace MANIFOLD.Animation {
-    public abstract class CompressedTrack<T> : Track<T> {
-        [JsonIgnore]
+    public abstract class CompressedTrack<T> : BoneTrack<T> {
+        [ReadOnly, JsonIgnore]
         public T[] Data { get; set; }
+        [ReadOnly]
         public int ElementCount { get; set; }
+        [ReadOnly]
         public string ContentString { get; set; }
         
         [JsonIgnore]
         public override int FrameCount => Data?.Length ?? ElementCount;
         [JsonIgnore]
-        public override bool Ready => Data != null;
+        public override bool Loaded => Data != null;
         
         public override T Get(int frame) {
-            if (!Ready) throw new InvalidOperationException("Data is not ready");
+            if (!Loaded) throw new InvalidOperationException("Data is not ready");
             ArgumentOutOfRangeException.ThrowIfLessThan(frame, 0, nameof(frame));
             ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(frame, Data.Length, nameof(frame));
 
@@ -23,14 +25,14 @@ namespace MANIFOLD.Animation {
         }
 
         public override T GetNext(int frame) {
-            if (!Ready) throw new InvalidOperationException("Data is not ready");
+            if (!Loaded) throw new InvalidOperationException("Data is not ready");
             ArgumentOutOfRangeException.ThrowIfLessThan(frame, 0, nameof(frame));
             ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(frame, Data.Length, nameof(frame));
             
             return Data[Math.Min(frame + 1, Data.Length - 1)];
         }
 
-        public override void Compress() {
+        public override void CompressData() {
             if (Data == null) return;
             
             ElementCount = Data.Length;
@@ -39,7 +41,7 @@ namespace MANIFOLD.Animation {
             ContentString = Convert.ToBase64String(stream.ToArray());
         }
 
-        public override void Decompress() {
+        public override void Load() {
             byte[] byteArray = Convert.FromBase64String(ContentString);
             ByteStream stream = ByteStream.CreateReader(byteArray);
 
@@ -51,7 +53,7 @@ namespace MANIFOLD.Animation {
             }
         }
 
-        public override void Reset() {
+        public override void Unload() {
             Data = null;
         }
 

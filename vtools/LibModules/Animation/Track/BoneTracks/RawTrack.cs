@@ -2,16 +2,17 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json.Serialization;
+using Sandbox;
 
 namespace MANIFOLD.Animation {
-    public class RawTrack<T> : Track<T> {
+    public class RawTrack<T> : BoneTrack<T> {
         public SortedDictionary<int, T> KeyFrames { get; set; } = new();
 
-        [JsonIgnore]
+        [ReadOnly, JsonIgnore]
         public override int FrameCount => KeyFrames.Count;
-        [JsonIgnore]
-        public override bool Ready => true;
-
+        [Hide, JsonIgnore]
+        public override bool Loaded => true;
+        
         public override T Get(int frame) {
             if (frame < 0) {
                 throw new ArgumentOutOfRangeException(nameof(frame), "Frame must be 0 or greater");

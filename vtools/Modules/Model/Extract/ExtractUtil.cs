@@ -2,6 +2,7 @@
 using ValveResourceFormat.ResourceTypes;
 using ValveResourceFormat.ResourceTypes.ModelAnimation;
 using ValveResourceFormat.Serialization.KeyValues;
+using SoundEvent = MANIFOLD.Animation.SoundEvent;
 
 namespace MANIFOLD.VTools.Model {
     public class ExtractUtil {
@@ -18,7 +19,8 @@ namespace MANIFOLD.VTools.Model {
                 Generated = true,
             };
             AddBoneTracks(anim, clip, model);
-            clip.Compress();
+            AddEventTracks(anim, clip);
+            clip.CompressData();
             return clip;
         }
         
@@ -40,8 +42,8 @@ namespace MANIFOLD.VTools.Model {
                     TargetBone = bone.Name,
                     Data = new Rotation[anim.FrameCount],
                 };
-                clip.Tracks.Add(pair.posTrack);
-                clip.Tracks.Add(pair.rotTrack);
+                clip.BoneTracks.Add(pair.posTrack);
+                clip.BoneTracks.Add(pair.rotTrack);
             }
                 
             // dont be fooled, GetAnimationMatrices looks correct but it gives us model space matrices (i think)
@@ -58,6 +60,109 @@ namespace MANIFOLD.VTools.Model {
             }
         }
 
+        public static void AddEventTracks(ValveResourceFormat.ResourceTypes.ModelAnimation.Animation anim, AnimationClip clip) {
+            Dictionary<string, EventTrack> tracks = new Dictionary<string, EventTrack>();
+
+            EventTrack<T> GetTrack<T>(string id) where T : class, IEvent {
+                if (!tracks.TryGetValue(id, out EventTrack track)) {
+                    track = new EventTrack<T>();
+                    track.Name = id;
+                    tracks.Add(id, track);
+                }
+                return (EventTrack<T>)track;
+            }
+            
+            foreach (var evt in anim.Events) {
+                switch (evt.Name) {
+                    // GENERIC
+                    case "AE_GENERIC_EVENT": {
+                        var track = GetTrack<GenericEvent>("Generic");
+                        var vectorData = evt.EventData.GetArray<double>("Vector");
+                        var vector = new Vector3((float)vectorData[0], (float)vectorData[1], (float)vectorData[2]);
+                        var data = new GenericEvent() {
+                            Type = evt.EventData.GetStringProperty("TypeName"),
+                            Int = evt.EventData.GetInt32Property("Int"),
+                            Float = evt.EventData.GetFloatProperty("Float"),
+                            Vector = vector,
+                            String = evt.EventData.GetStringProperty("StringData"),
+                        };
+                        
+                        track.Events.Add(evt.Frame, data);
+                        break;
+                    }
+                    
+                    // FOOTSTEPS
+                    case "AE_FOOTSTEP": {
+                        var track = GetTrack<FootstepEvent>("Footstep");
+                        var data = new FootstepEvent() {
+                            Foot = (FootstepEvent.FootSide)evt.EventData.GetInt32Property("Foot"),
+                            Attachment = evt.EventData.GetStringProperty("Attachment"),
+                            Volume = evt.EventData.GetFloatProperty("Volume"),
+                        };
+                        
+                        track.Events.Add(evt.Frame, data);
+                        break;
+                    }
+                    
+                    // BODY GROUPS
+                    case "AE_CL_BODYGROUP_SET_VALUE": {
+                        var track = GetTrack<BodyGroupEvent>("BodyGroup");
+                        var data = new BodyGroupEvent() {
+                            BodyGroup = evt.EventData.GetStringProperty("bodygroup"),
+                            Value = evt.EventData.GetInt32Property("value")
+                        };
+                        
+                        track.Events.Add(evt.Frame, data);
+                        break;
+                    }
+                    case "AE_SV_BODYGROUP_SET_VALUE": {
+                        var track = GetTrack<BodyGroupEvent>("BodyGroup");
+                        var data = new BodyGroupEvent() {
+                            BodyGroup = evt.EventData.GetStringProperty("bodygroup"),
+                            Value = evt.EventData.GetInt32Property("value")
+                        };
+                        
+                        track.Events.Add(evt.Frame, data);
+                        break;
+                    }
+                    
+                    // SOUND
+                    case "AE_CL_PLAYSOUND": {
+                        var track = GetTrack<SoundEvent>("Sound");
+                        var data = new SoundEvent() {
+                            Event = new Sandbox.SoundEvent() { Path = evt.EventData.GetStringProperty("name") }
+                        };
+                        
+                        track.Events.Add(evt.Frame, data);
+                        break;
+                    }
+                    case "AE_CL_PLAYSOUND_ATTACHMENT": {
+                        var track = GetTrack<SoundEvent>("Sound");
+                        var data = new SoundEvent() {
+                            Event = new Sandbox.SoundEvent() { Path = evt.EventData.GetStringProperty("name") },
+                            Attachment = evt.EventData.GetStringProperty("attachment")
+                        };
+                        
+                        track.Events.Add(evt.Frame, data);
+                        break;
+                    }
+                    case "AE_SV_PLAYSOUND": {
+                        var track = GetTrack<SoundEvent>("Sound");
+                        var data = new SoundEvent() {
+                            Event = new Sandbox.SoundEvent() { Path = evt.EventData.GetStringProperty("name") }
+                        };
+                        
+                        track.Events.Add(evt.Frame, data);
+                        break;
+                    }
+                }
+            }
+
+            foreach (var track in tracks.Values) {
+                clip.EventTracks.Add(track);
+            }
+        }
+        
         public static BoneMask CreateMask(KV3File file, string name) {
             var rootNode = file.Root.GetProperty<KVObject>("rootNode");
             var typeLists = rootNode.GetArray("children");

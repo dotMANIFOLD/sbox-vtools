@@ -14,6 +14,7 @@ namespace MANIFOLD.VTools.Model {
             resources.Model = new Sandbox.Model() { Path = VmdlFileRelative };
 
             foreach (var anim in VmdlCompiledModel.GetEmbeddedAnimations()) {
+                console.Output.WriteLine($"Extracting animation {anim.Name}...");
                 var clip = ExtractUtil.CreateClip(VmdlCompiledModel, anim);
                 clip.Embedded = true;
                 
@@ -21,6 +22,7 @@ namespace MANIFOLD.VTools.Model {
             }
 
             foreach (var name in ListUtil.ListAllWeightLists(VmdlResource)) {
+                console.Output.WriteLine($"Extracting bone mask {name}...");
                 var mask = ExtractUtil.CreateMask(VmdlResource, name);
                 mask.Model = new Sandbox.Model() { Path = VmdlFileRelative };
                 mask.Embedded = true;
